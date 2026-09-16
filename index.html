@@ -96,6 +96,27 @@
   .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius-m);padding:48px 24px;text-align:center;color:var(--ink-soft);}
   .empty p{margin:0 0 14px;}
 
+  .lotes-section{margin-bottom:26px;}
+  .lotes-section h2{font-family:var(--font-display);font-weight:500;font-size:19px;margin:0 0 14px;}
+  .lotes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+  .lote-card{
+    text-align:left;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius-m);
+    padding:14px 16px;
+    cursor:pointer;
+    font-family:var(--font-body);
+    color:var(--ink);
+  }
+  .lote-card:hover{border-color:var(--wheat);}
+  .lote-card:focus-visible{outline:2px solid var(--forest);outline-offset:1px;}
+  .lote-card.is-selected{border-color:var(--wheat);background:var(--wheat-bg);}
+  .lote-card .name{font-family:var(--font-display);font-size:17px;font-weight:500;margin-bottom:6px;}
+  .lote-card .stage-row{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);margin-bottom:2px;}
+  .lote-card .stage-row i{width:8px;height:8px;border-radius:2px;flex:none;}
+  .lote-card .meta{font-size:12px;color:var(--ink-soft);}
+
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden;margin-bottom:26px;}
   .stat{background:var(--surface);padding:18px 18px 16px;}
   .stat .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:8px;}
@@ -168,6 +189,11 @@
 
   <div class="sync-banner" id="syncBanner"><span class="dot"></span><span id="syncText">Conectando con Supabase…</span></div>
   <div class="alert-banner" id="alertBanner"></div>
+
+  <div class="lotes-section" id="lotesSection" style="display:none;">
+    <h2>Todos los lotes</h2>
+    <div class="lotes-grid" id="lotesGrid"></div>
+  </div>
 
   <div class="control-bar">
     <div class="field">
@@ -329,13 +355,11 @@
 
   function renderLoteSelect(){
     loteSelect.innerHTML = "";
-    if(lotes.length===0){
-      var opt = document.createElement("option");
-      opt.textContent = "— sin lotes —";
-      opt.value = "";
-      loteSelect.appendChild(opt);
-      return;
-    }
+    var placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = lotes.length ? "+ Nuevo lote…" : "— sin lotes —";
+    loteSelect.appendChild(placeholder);
+
     lotes.forEach(function(l){
       var opt = document.createElement("option");
       opt.value = l.id;
@@ -344,9 +368,12 @@
     });
     if(selectedId && lotes.some(function(l){return l.id===selectedId;})){
       loteSelect.value = selectedId;
-    } else if(lotes.length){
-      selectedId = lotes[0].id;
+    } else if(!selectedId && lotes.length){
+      // primera carga: mostrar el más reciente en vez de forzar "Nuevo lote"
+      selectedId = lotes[lotes.length-1].id;
       loteSelect.value = selectedId;
+    } else {
+      loteSelect.value = "";
     }
   }
   function currentLote(){ return lotes.find(function(l){ return l.id === selectedId; }) || null; }
@@ -356,6 +383,64 @@
       return lote.stage_settings;
     }
     return DEFAULT_STAGES;
+  }
+
+  function computeStatusFor(lote){
+    var stages = computeCumulative(effectiveStages(lote));
+    var birth = new Date(lote.birth_date + "T00:00:00");
+    var today = new Date();
+    var ageDays = Math.max(0, dayDiff(birth, today));
+    var totalDays = stages[stages.length-1].endDay;
+
+    var active = stages[stages.length-1];
+    for(var i=0;i<stages.length;i++){
+      if(ageDays < stages[i].endDay || i===stages.length-1){ active = stages[i]; break; }
+    }
+    var span = active.endDay - active.startDay;
+    var into = Math.min(Math.max(ageDays - active.startDay,0), span);
+    var frac = span>0 ? into/span : 1;
+    var estWeight = active.startWeight + (active.endWeight - active.startWeight) * frac;
+
+    return {
+      stages: stages, birth: birth, ageDays: ageDays, totalDays: totalDays,
+      active: active, estWeight: estWeight,
+      slaughterDate: addDays(birth, totalDays),
+      daysToSlaughter: totalDays - ageDays
+    };
+  }
+
+  function renderLotesGrid(){
+    var section = $("lotesSection");
+    var grid = $("lotesGrid");
+    grid.innerHTML = "";
+    if(!lotes.length){ section.style.display = "none"; return; }
+    section.style.display = "block";
+    lotes.forEach(function(l){
+      var st = computeStatusFor(l);
+      var card = document.createElement("button");
+      card.type = "button";
+      card.className = "lote-card" + (l.id === selectedId ? " is-selected" : "");
+      card.setAttribute("data-lote-id", l.id);
+      card.innerHTML =
+        '<div class="name">'+l.name+'</div>' +
+        '<div class="stage-row"><i style="background:'+st.active.color+'"></i>'+st.active.name+' · '+st.estWeight.toFixed(1)+' kg</div>' +
+        '<div class="meta">día '+st.ageDays+' · rastro '+fmtDate(st.slaughterDate)+'</div>';
+      card.addEventListener("click", function(){
+        selectLote(this.getAttribute("data-lote-id"));
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  function selectLote(id){
+    selectedId = id;
+    var lote = currentLote();
+    loteSelect.value = lote ? lote.id : "";
+    loteName.value = lote ? lote.name : "";
+    birthDate.value = lote ? lote.birth_date : "";
+    renderDashboard();
+    renderLotesGrid();
+    loadAlertForLote(selectedId);
   }
 
   function renderDurGrid(){
@@ -509,6 +594,7 @@
       loteName.value = currentLote() ? currentLote().name : "";
       birthDate.value = currentLote() ? currentLote().birth_date : new Date().toISOString().slice(0,10);
       renderDashboard();
+      renderLotesGrid();
       loadAlertForLote(selectedId);
       setSync("ok", lotes.length + " lote(s) sincronizados. Última carga: " + new Date().toLocaleTimeString("es-PE"));
     }catch(e){
@@ -520,15 +606,15 @@
     lotes = [];
     renderLoteSelect();
     renderDashboard();
+    renderLotesGrid();
   }
 
   loteSelect.addEventListener("change", function(){
-    selectedId = loteSelect.value;
-    var lote = currentLote();
-    loteName.value = lote ? lote.name : "";
-    birthDate.value = lote ? lote.birth_date : "";
-    renderDashboard();
-    loadAlertForLote(selectedId);
+    if(loteSelect.value === ""){
+      $("newLote").click();
+      return;
+    }
+    selectLote(loteSelect.value);
   });
 
   $("newLote").addEventListener("click", function(){
@@ -538,6 +624,7 @@
     birthDate.value = new Date().toISOString().slice(0,10);
     stageSettings = DEFAULT_STAGES;
     alertBanner.className = "alert-banner";
+    renderLotesGrid();
   });
 
   $("saveLote").addEventListener("click", async function(){
