@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciclo Productivo del Cerdo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg:#ece7d9;
+    --surface:#f8f4e9;
+    --surface-2:#f1ebd9;
+    --ink:#2b2a22;
+    --ink-soft:#5c5847;
+    --line:#d8cfb8;
+    --forest:#3f4b37;
+    --wheat:#b9812a;
+    --wheat-bg:#f2e2bd;
+    --danger:#8a3b2e;
+    --ok:#3f6b47;
+    --stage-1:#9fae94;
+    --stage-2:#c9932e;
+    --stage-3:#b17a34;
+    --stage-4:#93613a;
+    --stage-5:#764b34;
+    --stage-6:#573224;
+    --radius-s:3px;
+    --radius-m:6px;
+    --font-display:"Newsreader", Georgia, "Times New Roman", serif;
+    --font-body:"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono:"IBM Plex Mono", "SF Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#1d1b16; --surface:#262319; --surface-2:#2d2a1e;
+      --ink:#efe9d8; --ink-soft:#b9b09a; --line:#413c2c;
+      --forest:#8faa7c; --wheat:#e0a83e; --wheat-bg:#3a3016; --danger:#d98168; --ok:#8faa7c;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1d1b16; --surface:#262319; --surface-2:#2d2a1e;
+    --ink:#efe9d8; --ink-soft:#b9b09a; --line:#413c2c;
+    --forest:#8faa7c; --wheat:#e0a83e; --wheat-bg:#3a3016; --danger:#d98168; --ok:#8faa7c;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;padding:32px 20px 64px;}
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:22px;flex-wrap:wrap;}
+  header.top h1{font-family:var(--font-display);font-weight:500;font-size:32px;margin:0 0 4px;letter-spacing:-0.01em;}
+  header.top h1 em{font-style:italic;color:var(--wheat);}
+  header.top p{margin:0;color:var(--ink-soft);font-size:14px;max-width:46ch;}
+  .brand-mark{font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);text-align:right;line-height:1.6;}
+
+  .sync-banner{
+    display:flex;align-items:center;gap:10px;
+    font-size:13px;color:var(--ink-soft);
+    margin-bottom:16px;padding:8px 12px;
+    border:1px solid var(--line);border-radius:var(--radius-s);background:var(--surface);
+  }
+  .sync-banner .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-soft);flex:none;}
+  .sync-banner.ok .dot{background:var(--ok);}
+  .sync-banner.err .dot{background:var(--danger);}
+  .sync-banner.err{color:var(--danger);border-color:var(--danger);}
+
+  .alert-banner{
+    display:none;
+    gap:10px;align-items:flex-start;
+    font-size:13.5px;
+    margin-bottom:16px;padding:12px 14px;
+    border:1px solid var(--wheat);border-radius:var(--radius-s);background:var(--wheat-bg);
+  }
+  .alert-banner.show{display:flex;}
+
+  .control-bar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:18px 20px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;margin-bottom:26px;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:12.5px;color:var(--ink-soft);}
+  .field select, .field input[type=date], .field input[type=text]{
+    font-family:var(--font-body);font-size:14.5px;color:var(--ink);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:var(--radius-s);padding:8px 10px;min-width:180px;
+  }
+  .field select:focus, .field input:focus{outline:2px solid var(--forest);outline-offset:1px;}
+  .btn{font-family:var(--font-body);font-size:14px;font-weight:600;border:1px solid var(--forest);background:var(--forest);color:var(--surface);border-radius:var(--radius-s);padding:9px 16px;cursor:pointer;}
+  .btn:hover{opacity:0.92;}
+  .btn:disabled{opacity:0.5;cursor:default;}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  .btn.ghost{background:transparent;color:var(--danger);border-color:var(--line);}
+  .btn.ghost:hover{border-color:var(--danger);}
+  .control-bar .spacer{flex:1 1 auto;}
+
+  .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius-m);padding:48px 24px;text-align:center;color:var(--ink-soft);}
+  .empty p{margin:0 0 14px;}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden;margin-bottom:26px;}
+  .stat{background:var(--surface);padding:18px 18px 16px;}
+  .stat .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:8px;}
+  .stat .value{font-family:var(--font-display);font-size:26px;font-weight:500;line-height:1.1;}
+  .stat .value small{font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--ink-soft);}
+  .stat .sub{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
+  .stat.current .value{color:var(--wheat);}
+
+  .timeline-section{margin-bottom:30px;}
+  .timeline-section h2{font-family:var(--font-display);font-weight:500;font-size:19px;margin:0 0 14px;}
+  .timeline{position:relative;border:1px solid var(--line);border-radius:var(--radius-m);background:var(--surface);padding:22px 22px 16px;overflow-x:auto;}
+  .weight-axis{display:flex;margin-bottom:6px;min-width:640px;}
+  .weight-axis span{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-soft);text-align:left;}
+  .stage-track{display:flex;min-width:640px;border-radius:var(--radius-s);overflow:hidden;position:relative;height:64px;}
+  .stage-block{display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fbf6e8;font-size:12px;font-weight:600;text-align:center;padding:2px 4px;position:relative;border-right:1px solid rgba(0,0,0,0.15);}
+  .stage-block:last-child{border-right:none;}
+  .stage-block .feed{font-family:var(--font-mono);font-weight:500;font-size:11px;opacity:0.9;margin-top:2px;}
+  .stage-block.is-current{outline:2px solid var(--ink);outline-offset:-2px;}
+  .stage-block.is-past{opacity:0.55;}
+  .today-marker{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px dashed var(--danger);z-index:5;}
+  .today-marker::after{content:"Hoy";position:absolute;top:-20px;left:-14px;font-family:var(--font-mono);font-size:10.5px;color:var(--danger);white-space:nowrap;}
+  .day-axis{display:flex;min-width:640px;margin-top:6px;}
+  .day-axis span{font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+  .legend .chip{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);}
+  .legend .chip i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+  table.stages{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden;}
+  table.stages th, table.stages td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);font-size:13.5px;}
+  table.stages th{font-weight:600;color:var(--ink-soft);font-size:12px;text-transform:uppercase;letter-spacing:.04em;background:var(--surface-2);}
+  table.stages tr:last-child td{border-bottom:none;}
+  table.stages td.num{font-family:var(--font-mono);font-size:13px;}
+  table.stages tr.row-current td{background:var(--wheat-bg);}
+  table.stages tr.row-current td:first-child{border-left:3px solid var(--wheat);padding-left:11px;}
+  .stage-name{display:flex;align-items:center;gap:8px;}
+  .stage-name i{width:10px;height:10px;border-radius:2px;flex:none;}
+
+  details.advanced{margin-top:26px;border:1px solid var(--line);border-radius:var(--radius-m);background:var(--surface);}
+  details.advanced summary{cursor:pointer;padding:14px 18px;font-weight:600;font-size:14px;list-style:none;}
+  details.advanced summary::-webkit-details-marker{display:none;}
+  details.advanced summary::before{content:"▸ ";color:var(--ink-soft);}
+  details.advanced[open] summary::before{content:"▾ ";}
+  .advanced-body{padding:4px 18px 18px;}
+  .advanced-body p{color:var(--ink-soft);font-size:13px;margin-top:0;}
+  .dur-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px;}
+  .dur-item{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-s);}
+  .dur-item .stage-name{font-size:12.5px;font-weight:600;}
+  .dur-item input{width:100%;font-family:var(--font-mono);font-size:13.5px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-s);padding:6px 8px;color:var(--ink);}
+  .advanced-actions{display:flex;gap:10px;}
+
+  footer.note{margin-top:28px;font-size:12px;color:var(--ink-soft);}
+
+  @media (max-width:720px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .control-bar{flex-direction:column;align-items:stretch;}
+    .field select, .field input{min-width:0;width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Ciclo <em>productivo</em> del cerdo</h1>
+      <p>Registra la fecha de nacimiento de un lote y calcula automáticamente cuándo cambia de etapa de alimentación, hasta el día de rastro. Los datos se guardan en Supabase y un cron diario los mantiene al día.</p>
+    </div>
+    <div class="brand-mark">Lactancia · Preiniciador · Iniciador<br>Crecimiento · Desarrollo · Finalización</div>
+  </header>
+
+  <div class="sync-banner" id="syncBanner"><span class="dot"></span><span id="syncText">Conectando con Supabase…</span></div>
+  <div class="alert-banner" id="alertBanner"></div>
+
+  <div class="control-bar">
+    <div class="field">
+      <label for="loteSelect">Lote</label>
+      <select id="loteSelect"></select>
+    </div>
+    <div class="field">
+      <label for="loteName">Nombre del lote</label>
+      <input type="text" id="loteName" placeholder="Ej. Lote 14 - Corral B">
+    </div>
+    <div class="field">
+      <label for="birthDate">Fecha de nacimiento</label>
+      <input type="date" id="birthDate">
+    </div>
+    <button class="btn" id="newLote" type="button">Nuevo lote</button>
+    <button class="btn" id="saveLote" type="button">Guardar</button>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="deleteLote" type="button">Eliminar lote</button>
+  </div>
+
+  <div id="emptyState" class="empty" style="display:none;">
+    <p>Todavía no hay ningún lote guardado en Supabase.</p>
+    <p>Escribe un nombre, elige la fecha de nacimiento y presiona <strong>Guardar</strong> para ver el ciclo completo.</p>
+  </div>
+
+  <div id="dashboard" style="display:none;">
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Edad actual</div>
+        <div class="value" id="statAge">—<small>días</small></div>
+        <div class="sub" id="statWeek">semana —</div>
+      </div>
+      <div class="stat current">
+        <div class="label">Etapa actual</div>
+        <div class="value" id="statStage">—</div>
+        <div class="sub" id="statStageRange">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Peso estimado</div>
+        <div class="value" id="statWeight">—<small>kg</small></div>
+        <div class="sub" id="statWeightRange">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Fecha de rastro</div>
+        <div class="value" id="statSlaughter">—</div>
+        <div class="sub" id="statCountdown">—</div>
+      </div>
+    </div>
+
+    <div class="timeline-section">
+      <h2>Línea de tiempo de alimentación</h2>
+      <div class="timeline">
+        <div class="weight-axis" id="weightAxis"></div>
+        <div class="stage-track" id="stageTrack"></div>
+        <div class="day-axis" id="dayAxis"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <div class="timeline-section">
+      <h2>Detalle por etapa</h2>
+      <table class="stages">
+        <thead>
+          <tr><th>Etapa</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Peso</th><th>Alimento</th></tr>
+        </thead>
+        <tbody id="stageTableBody"></tbody>
+      </table>
+    </div>
+
+    <details class="advanced">
+      <summary>Duraciones y pesos por etapa (avanzado)</summary>
+      <div class="advanced-body">
+        <p>Ajusta los días, el peso final y el alimento consumido de cada etapa para este lote, si tu protocolo difiere del estándar. Se guarda junto con el lote y el cron diario lo respeta.</p>
+        <div class="dur-grid" id="durGrid"></div>
+        <div class="advanced-actions">
+          <button class="btn" id="applySettings" type="button">Aplicar y guardar</button>
+          <button class="btn ghost" id="resetSettings" type="button">Restaurar valores de referencia</button>
+        </div>
+      </div>
+    </details>
+
+  </div>
+
+  <footer class="note">Los pesos y el alimento consumido son valores de referencia estándar de la industria; ajústalos en el panel avanzado según tu propia curva de crecimiento. Un flujo de GitHub Actions recalcula todos los lotes cada mañana y deja un registro en <code>cerdo_lotes_eventos</code> cuando alguno cambia de etapa.</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Configuración de conexión ---------------------------------------
+  // Reemplaza estos dos valores por los de tu propio proyecto Supabase.
+  // La clave "anon" es pública por diseño: la protección real la da RLS
+  // (ver supabase/migrations/0001_init.sql y el README, sección Seguridad).
+  var SUPABASE_URL = "https://ngfooohbehmgtzlkbkoa.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nZm9vb2hiZWhtZ3R6bGtia29hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxOTgyMjksImV4cCI6MjEwMDc3NDIyOX0.9_woDv4IJCrf_peuBalAZ_Uc4nSTgwmgdJ0XCHB7LeM";
+  // -----------------------------------------------------------------------
+
+  var DEFAULT_STAGES = [
+    { id:"lactancia",    name:"Lactancia",     duration:21, endWeight:5.5,  feed:null, color:"var(--stage-1)", startWeight:1.4 },
+    { id:"preiniciador", name:"Preiniciador",  duration:28, endWeight:15,   feed:12,   color:"var(--stage-2)" },
+    { id:"iniciador",    name:"Iniciador",     duration:21, endWeight:30,   feed:22,   color:"var(--stage-3)" },
+    { id:"crecimiento",  name:"Crecimiento",   duration:28, endWeight:50,   feed:49,   color:"var(--stage-4)" },
+    { id:"desarrollo",   name:"Desarrollo",    duration:28, endWeight:75,   feed:65,   color:"var(--stage-5)" },
+    { id:"finalizacion", name:"Finalización",  duration:28, endWeight:100,  feed:84,   color:"var(--stage-6)" }
+  ];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var loteSelect = $("loteSelect");
+  var loteName = $("loteName");
+  var birthDate = $("birthDate");
+  var emptyState = $("emptyState");
+  var dashboard = $("dashboard");
+  var syncBanner = $("syncBanner");
+  var syncText = $("syncText");
+  var alertBanner = $("alertBanner");
+
+  var supabase = null;
+  var client = null;
+  var lotes = [];
+  var selectedId = null;
+  var stageSettings = DEFAULT_STAGES; // efectivo para el lote seleccionado
+
+  function setSync(state, text){
+    syncBanner.className = "sync-banner " + state;
+    syncText.textContent = text;
+  }
+
+  if(window.supabase && SUPABASE_URL.indexOf("__") !== 0){
+    client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
+  function computeCumulative(stages){
+    var cum = [], acc = 0;
+    for(var i=0;i<stages.length;i++){
+      var s = stages[i];
+      var start = acc;
+      acc += Number(s.duration);
+      cum.push({
+        id:s.id, name:s.name, color:s.color,
+        startDay:start, endDay:acc,
+        startWeight: i===0 ? s.startWeight : stages[i-1].endWeight,
+        endWeight: s.endWeight,
+        feed: s.feed
+      });
+    }
+    return cum;
+  }
+  function fmtDate(d){ return d.toLocaleDateString("es-PE", { day:"2-digit", month:"short", year:"numeric" }); }
+  function addDays(date, days){ var d = new Date(date.getTime()); d.setDate(d.getDate()+days); return d; }
+  function dayDiff(a,b){
+    var MS = 24*60*60*1000;
+    var da = new Date(a.getFullYear(),a.getMonth(),a.getDate());
+    var db = new Date(b.getFullYear(),b.getMonth(),b.getDate());
+    return Math.round((db-da)/MS);
+  }
+
+  function renderLoteSelect(){
+    loteSelect.innerHTML = "";
+    if(lotes.length===0){
+      var opt = document.createElement("option");
+      opt.textContent = "— sin lotes —";
+      opt.value = "";
+      loteSelect.appendChild(opt);
+      return;
+    }
+    lotes.forEach(function(l){
+      var opt = document.createElement("option");
+      opt.value = l.id;
+      opt.textContent = l.name + " (" + l.birth_date + ")";
+      loteSelect.appendChild(opt);
+    });
+    if(selectedId && lotes.some(function(l){return l.id===selectedId;})){
+      loteSelect.value = selectedId;
+    } else if(lotes.length){
+      selectedId = lotes[0].id;
+      loteSelect.value = selectedId;
+    }
+  }
+  function currentLote(){ return lotes.find(function(l){ return l.id === selectedId; }) || null; }
+
+  function effectiveStages(lote){
+    if(lote && Array.isArray(lote.stage_settings) && lote.stage_settings.length){
+      return lote.stage_settings;
+    }
+    return DEFAULT_STAGES;
+  }
+
+  function renderDurGrid(){
+    var grid = $("durGrid");
+    grid.innerHTML = "";
+    stageSettings.forEach(function(s, idx){
+      var item = document.createElement("div");
+      item.className = "dur-item";
+      item.innerHTML =
+        '<div class="stage-name"><i style="background:'+s.color+'"></i>'+s.name+'</div>' +
+        '<label style="font-size:11.5px;color:var(--ink-soft);">Duración (días)' +
+        '<input type="number" min="1" data-idx="'+idx+'" data-field="duration" value="'+s.duration+'"></label>' +
+        '<label style="font-size:11.5px;color:var(--ink-soft);">Peso final (kg)' +
+        '<input type="number" step="0.1" min="0" data-idx="'+idx+'" data-field="endWeight" value="'+s.endWeight+'"></label>' +
+        (s.feed!==null ? '<label style="font-size:11.5px;color:var(--ink-soft);">Alimento (kg)' +
+        '<input type="number" step="0.1" min="0" data-idx="'+idx+'" data-field="feed" value="'+s.feed+'"></label>' : '');
+      grid.appendChild(item);
+    });
+  }
+
+  function renderDashboard(){
+    var lote = currentLote();
+    if(!lote){
+      emptyState.style.display = "block";
+      dashboard.style.display = "none";
+      return;
+    }
+    emptyState.style.display = "none";
+    dashboard.style.display = "block";
+    stageSettings = effectiveStages(lote);
+    renderDurGrid();
+
+    var birth = new Date(lote.birth_date + "T00:00:00");
+    var today = new Date();
+    var ageDays = Math.max(0, dayDiff(birth, today));
+    var stages = computeCumulative(stageSettings);
+    var totalDays = stages[stages.length-1].endDay;
+    var slaughterDate = addDays(birth, totalDays);
+
+    var active = stages[stages.length-1];
+    for(var i=0;i<stages.length;i++){
+      if(ageDays < stages[i].endDay || i===stages.length-1){ active = stages[i]; break; }
+    }
+
+    $("statAge").innerHTML = ageDays + "<small>días</small>";
+    $("statWeek").textContent = "semana " + (Math.floor(ageDays/7)+1);
+    $("statStage").textContent = active.name;
+    $("statStageRange").textContent = "día " + active.startDay + " a " + active.endDay;
+
+    var span = active.endDay - active.startDay;
+    var into = Math.min(Math.max(ageDays - active.startDay,0), span);
+    var frac = span>0 ? into/span : 1;
+    var estWeight = active.startWeight + (active.endWeight - active.startWeight) * frac;
+    $("statWeight").innerHTML = estWeight.toFixed(1) + "<small>kg</small>";
+    $("statWeightRange").textContent = active.startWeight + " → " + active.endWeight + " kg en esta etapa";
+
+    $("statSlaughter").textContent = fmtDate(slaughterDate);
+    var daysLeft = totalDays - ageDays;
+    $("statCountdown").textContent = daysLeft > 0 ? ("faltan " + daysLeft + " días") : (daysLeft===0 ? "es hoy" : "hace " + Math.abs(daysLeft) + " días");
+
+    var track = $("stageTrack"), weightAxis = $("weightAxis"), dayAxis = $("dayAxis"), legend = $("legend");
+    track.innerHTML = ""; weightAxis.innerHTML = ""; dayAxis.innerHTML = ""; legend.innerHTML = "";
+
+    stages.forEach(function(s){
+      var widthPct = ((s.endDay - s.startDay) / totalDays) * 100;
+
+      var wSpan = document.createElement("span");
+      wSpan.style.width = widthPct + "%";
+      wSpan.textContent = s.startWeight.toFixed(1) + " kg";
+      weightAxis.appendChild(wSpan);
+
+      var block = document.createElement("div");
+      block.className = "stage-block";
+      if(s.id === active.id) block.classList.add("is-current");
+      else if(s.endDay <= ageDays) block.classList.add("is-past");
+      block.style.width = widthPct + "%";
+      block.style.background = s.color;
+      block.innerHTML = "<span>"+s.name+"</span>" + (s.feed!==null ? '<span class="feed">'+s.feed+' kg</span>' : '');
+      track.appendChild(block);
+
+      var dSpan = document.createElement("span");
+      dSpan.style.width = widthPct + "%";
+      dSpan.textContent = "d" + s.startDay;
+      dayAxis.appendChild(dSpan);
+
+      var chip = document.createElement("div");
+      chip.className = "chip";
+      chip.innerHTML = '<i style="background:'+s.color+'"></i>' + s.name;
+      legend.appendChild(chip);
+    });
+
+    if(ageDays >= 0 && ageDays <= totalDays){
+      var marker = document.createElement("div");
+      marker.className = "today-marker";
+      marker.style.left = ((ageDays/totalDays)*100) + "%";
+      track.style.position = "relative";
+      track.appendChild(marker);
+    }
+
+    var tbody = $("stageTableBody");
+    tbody.innerHTML = "";
+    stages.forEach(function(s){
+      var tr = document.createElement("tr");
+      if(s.id === active.id) tr.className = "row-current";
+      var startD = addDays(birth, s.startDay), endD = addDays(birth, s.endDay);
+      tr.innerHTML =
+        '<td><div class="stage-name"><i style="background:'+s.color+'"></i>'+s.name+'</div></td>' +
+        '<td class="num">'+fmtDate(startD)+'</td>' +
+        '<td class="num">'+fmtDate(endD)+'</td>' +
+        '<td class="num">'+(s.endDay-s.startDay)+' días</td>' +
+        '<td class="num">'+s.startWeight.toFixed(1)+' → '+s.endWeight.toFixed(1)+' kg</td>' +
+        '<td class="num">'+(s.feed!==null ? s.feed+' kg' : '—')+'</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function loadAlertForLote(loteId){
+    alertBanner.className = "alert-banner";
+    alertBanner.innerHTML = "";
+    if(!client || !loteId) return;
+    try{
+      var { data, error } = await client
+        .from("cerdo_lotes_eventos")
+        .select("*")
+        .eq("lote_id", loteId)
+        .eq("notified", false)
+        .order("created_at", { ascending:false })
+        .limit(1);
+      if(error || !data || !data.length) return;
+      var ev = data[0];
+      alertBanner.innerHTML = "<span>⚠</span><span>El cron diario detectó que este lote pasó de <strong>"+ev.previous_stage+"</strong> a <strong>"+ev.new_stage+"</strong> el "+ev.occurred_on+".</span>";
+      alertBanner.classList.add("show");
+    }catch(e){ /* silencioso: la alerta es informativa, no crítica */ }
+  }
+
+  async function loadLotes(){
+    if(!client){
+      setSync("err", "Falta configurar SUPABASE_URL / SUPABASE_ANON_KEY en index.html.");
+      renderLoteSelectAndDashboardEmpty();
+      return;
+    }
+    setSync("", "Sincronizando con Supabase…");
+    try{
+      var { data, error } = await client
+        .from("cerdo_lotes")
+        .select("*")
+        .order("created_at", { ascending:true });
+      if(error) throw error;
+      lotes = data || [];
+      renderLoteSelect();
+      loteName.value = currentLote() ? currentLote().name : "";
+      birthDate.value = currentLote() ? currentLote().birth_date : new Date().toISOString().slice(0,10);
+      renderDashboard();
+      loadAlertForLote(selectedId);
+      setSync("ok", lotes.length + " lote(s) sincronizados. Última carga: " + new Date().toLocaleTimeString("es-PE"));
+    }catch(e){
+      setSync("err", "No se pudo conectar a Supabase: " + (e.message || e));
+    }
+  }
+
+  function renderLoteSelectAndDashboardEmpty(){
+    lotes = [];
+    renderLoteSelect();
+    renderDashboard();
+  }
+
+  loteSelect.addEventListener("change", function(){
+    selectedId = loteSelect.value;
+    var lote = currentLote();
+    loteName.value = lote ? lote.name : "";
+    birthDate.value = lote ? lote.birth_date : "";
+    renderDashboard();
+    loadAlertForLote(selectedId);
+  });
+
+  $("newLote").addEventListener("click", function(){
+    selectedId = null;
+    loteSelect.value = "";
+    loteName.value = "";
+    birthDate.value = new Date().toISOString().slice(0,10);
+    stageSettings = DEFAULT_STAGES;
+    alertBanner.className = "alert-banner";
+  });
+
+  $("saveLote").addEventListener("click", async function(){
+    if(!client){ return; }
+    var name = loteName.value.trim() || ("Lote " + (lotes.length+1));
+    var bd = birthDate.value;
+    if(!bd){ birthDate.focus(); return; }
+
+    this.disabled = true;
+    try{
+      if(selectedId){
+        var { error } = await client
+          .from("cerdo_lotes")
+          .update({ name:name, birth_date:bd })
+          .eq("id", selectedId);
+        if(error) throw error;
+      } else {
+        var { data, error: insErr } = await client
+          .from("cerdo_lotes")
+          .insert({ name:name, birth_date:bd })
+          .select()
+          .single();
+        if(insErr) throw insErr;
+        selectedId = data.id;
+      }
+      await loadLotes();
+    }catch(e){
+      setSync("err", "No se pudo guardar: " + (e.message || e));
+    }finally{
+      this.disabled = false;
+    }
+  });
+
+  $("deleteLote").addEventListener("click", async function(){
+    if(!client || !selectedId) return;
+    try{
+      var { error } = await client.from("cerdo_lotes").delete().eq("id", selectedId);
+      if(error) throw error;
+      selectedId = null;
+      await loadLotes();
+    }catch(e){
+      setSync("err", "No se pudo eliminar: " + (e.message || e));
+    }
+  });
+
+  $("applySettings").addEventListener("click", async function(){
+    if(!client || !selectedId) return;
+    var inputs = document.querySelectorAll("#durGrid input");
+    var next = JSON.parse(JSON.stringify(stageSettings));
+    inputs.forEach(function(inp){
+      var idx = Number(inp.getAttribute("data-idx"));
+      var field = inp.getAttribute("data-field");
+      var val = parseFloat(inp.value);
+      if(!isNaN(val)) next[idx][field] = val;
+    });
+    try{
+      var { error } = await client
+        .from("cerdo_lotes")
+        .update({ stage_settings: next })
+        .eq("id", selectedId);
+      if(error) throw error;
+      await loadLotes();
+    }catch(e){
+      setSync("err", "No se pudo guardar la configuración: " + (e.message || e));
+    }
+  });
+
+  $("resetSettings").addEventListener("click", async function(){
+    if(!client || !selectedId) return;
+    try{
+      var { error } = await client
+        .from("cerdo_lotes")
+        .update({ stage_settings: null })
+        .eq("id", selectedId);
+      if(error) throw error;
+      await loadLotes();
+    }catch(e){
+      setSync("err", "No se pudo restaurar: " + (e.message || e));
+    }
+  });
+
+  // Carga inicial + suscripción en tiempo real a cambios (p. ej. los que hace el cron)
+  loadLotes();
+  if(client){
+    client
+      .channel("cerdo_lotes_changes")
+      .on("postgres_changes", { event:"*", schema:"public", table:"cerdo_lotes" }, function(){ loadLotes(); })
+      .on("postgres_changes", { event:"*", schema:"public", table:"cerdo_lotes_eventos" }, function(){ loadAlertForLote(selectedId); })
+      .subscribe();
+  }
+
+  // Recalcular la vista localmente cada hora por si la pestaña queda abierta varios días.
+  setInterval(renderDashboard, 60*60*1000);
+})();
+</script>
+</body>
+</html>
